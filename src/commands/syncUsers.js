@@ -35,11 +35,15 @@ module.exports = async function handleSyncUsers(interaction, guild) {
     }
   }
 
+  const allUsers = getAllUsers();
+  const userList = allUsers.map(u => `• ${u.name} (@${u.login})`).join('\n');
+
   await interaction.editReply(
     `✅ Синхронізація завершена!\n` +
     `➕ Додано: **${added}**\n` +
-    `➖ Видалено: **${removed}**`
+    `➖ Видалено: **${removed}**\n\n` +
+    `👥 **Учасники в базі (${allUsers.length}):**\n${userList}`
   );
-  
+
   autoDelete(interaction)
 };
