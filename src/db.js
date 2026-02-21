@@ -17,7 +17,7 @@ db.exec(`
     type TEXT DEFAULT 'expense',
     closed INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (user_login) REFERENCES users(login)
+    FOREIGN KEY (user_login) REFERENCES users(login) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS contracts (
@@ -39,7 +39,7 @@ db.exec(`
     active_contract_id INTEGER NOT NULL,
     user_login TEXT NOT NULL,
     FOREIGN KEY (active_contract_id) REFERENCES active_contract(id),
-    FOREIGN KEY (user_login) REFERENCES users(login)
+    FOREIGN KEY (user_login) REFERENCES users(login) ON DELETE CASCADE
   );
 `);
 
@@ -89,7 +89,6 @@ function getAllBalance() {
   }));
 }
 
-// Незакриті витрати
 function getOpenExpenses(login) {
   return db.prepare(`
     SELECT * FROM records
@@ -98,7 +97,6 @@ function getOpenExpenses(login) {
   `).all(login);
 }
 
-// Незакриті доходи
 function getOpenIncomes(login) {
   return db.prepare(`
     SELECT * FROM records
@@ -107,12 +105,10 @@ function getOpenIncomes(login) {
   `).all(login);
 }
 
-// Для сумісності — повертає відкриті витрати
 function getRecordsByLogin(login) {
   return getOpenExpenses(login);
 }
 
-// Базовий insert без взаємозаліку
 function insertRecord(login, amount, label, type) {
   const user = db.prepare('SELECT * FROM users WHERE login = ?').get(login);
   if (!user) {
@@ -122,7 +118,6 @@ function insertRecord(login, amount, label, type) {
   return db.prepare('INSERT INTO records (user_login, amount, label, type) VALUES (?, ?, ?, ?)').run(login, amount, label, type);
 }
 
-// Додати запис З взаємозаліком
 function addRecord(login, amount, label, type = 'expense') {
   const user = db.prepare('SELECT * FROM users WHERE login = ?').get(login);
   if (!user) {
@@ -172,11 +167,9 @@ function addRecord(login, amount, label, type = 'expense') {
     }
   }
 
-  // Вставляємо оригінальний запис як закритий
   const inserted = insertRecord(login, amount, label, type);
   db.prepare('UPDATE records SET closed = 1 WHERE id = ?').run(inserted.lastInsertRowid);
 
-  // Якщо є залишок — вставляємо як відкритий
   if (remaining > 0) {
     insertRecord(login, remaining, label, type);
   }
@@ -264,6 +257,7 @@ function removeMemberFromContract(activeContractId, userLogin) {
 }
 
 module.exports = {
+  db,
   upsertUser, getAllUsers,
   createWeeklyRecords, getAllBalance, getRecordsByLogin,
   getOpenExpenses, getOpenIncomes,
