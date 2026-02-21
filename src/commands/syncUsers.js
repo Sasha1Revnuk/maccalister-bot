@@ -1,6 +1,6 @@
 ﻿const { ADMIN_ROLE } = require('../config');
-const { upsertUser } = require('../db');
-const { deleteNow } = require('../utils');
+const { db, upsertUser, getAllUsers } = require('../db');
+const { autoDelete } = require('../utils');
 
 module.exports = async function handleSyncUsers(interaction, guild) {
   const isAdmin = interaction.member.roles.cache.has(ADMIN_ROLE);
@@ -12,14 +12,34 @@ module.exports = async function handleSyncUsers(interaction, guild) {
   await interaction.deferReply({ flags: 64 });
   await guild.members.fetch();
 
-  let added = 0;
-  guild.members.cache
-    .filter(m => !m.user.bot)
-    .forEach(m => {
-      const result = upsertUser(m.user.username, m.displayName);
-      if (result === 'added') added++;
-    });
+  const discordLogins = new Set(
+    [...guild.members.cache.values()]
+      .filter(m => !m.user.bot)
+      .map(m => m.user.username)
+  );
 
-  await interaction.editReply(`✅ Готово! Нових учасників додано: **${added}**`);
-  deleteNow(interaction);
+  // Додаємо нових
+  let added = 0;
+  for (const [, member] of guild.members.cache.filter(m => !m.user.bot)) {
+    const result = upsertUser(member.user.username, member.displayName);
+    if (result === 'added') added++;
+  }
+
+  // Видаляємо тих кого вже немає (records і members видаляться каскадно)
+  const dbUsers = getAllUsers();
+  let removed = 0;
+  for (const user of dbUsers) {
+    if (!discordLogins.has(user.login)) {
+      db.prepare('DELETE FROM users WHERE login = ?').run(user.login);
+      removed++;
+    }
+  }
+
+  await interaction.editReply(
+    `✅ Синхронізація завершена!\n` +
+    `➕ Додано: **${added}**\n` +
+    `➖ Видалено: **${removed}**`
+  );
+  
+  autoDelete(interaction)
 };
