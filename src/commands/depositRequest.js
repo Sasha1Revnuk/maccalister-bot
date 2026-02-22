@@ -7,7 +7,7 @@
   TextInputStyle,
   StringSelectMenuBuilder,
 } = require('discord.js');
-const { MACCALISTER_ROLE_ID, ACCOUNTANT_ROLE, REQUESTS_CHANNEL_ID, CURRENCY } = require('../config');
+const { MACCALISTER_ROLE_ID, ACCOUNTANT_ROLE, DEPOSIT_CHANNEL_ID, CURRENCY } = require('../config');
 const { getOpenExpenses, getAllBalance, addRecord } = require('../db');
 const { autoDelete, deleteNow } = require('../utils');
 
@@ -192,7 +192,7 @@ async function sendDepositRequest(interaction, login, amount, label, expense) {
   const balance = userData?.total ?? 0;
 
   try {
-    const channel = guild.channels.cache.get(REQUESTS_CHANNEL_ID);
+    const channel = guild.channels.cache.get(DEPOSIT_CHANNEL_ID);
     if (!channel) {
       await interaction.reply({ content: '❌ Канал запитів не знайдено.', flags: 64 });
       autoDelete(interaction);
