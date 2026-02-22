@@ -1,5 +1,5 @@
-﻿const { ADMIN_ROLE } = require('../config');
-const { db, upsertUser, getAllUsers } = require('../db');
+﻿const { ADMIN_ROLE, IGNORED_ROLE } = require('../config');
+const { db, upsertUser, updateUserName, getAllUsers } = require('../db');
 const { autoDelete } = require('../utils');
 
 module.exports = async function handleSyncUsers(interaction, guild) {
@@ -12,20 +12,26 @@ module.exports = async function handleSyncUsers(interaction, guild) {
   await interaction.deferReply({ flags: 64 });
   await guild.members.fetch();
 
-  const discordLogins = new Set(
-    [...guild.members.cache.values()]
-      .filter(m => !m.user.bot)
-      .map(m => m.user.username)
+  // Фільтруємо: без ботів і без ігнорованої ролі
+  const validMembers = [...guild.members.cache.values()].filter(m =>
+    !m.user.bot && !m.roles.cache.has(IGNORED_ROLE)
   );
 
-  // Додаємо нових
+  const discordLogins = new Set(validMembers.map(m => m.user.username));
+
+  // Додаємо нових і оновлюємо імена
   let added = 0;
-  for (const [, member] of guild.members.cache.filter(m => !m.user.bot)) {
+  let updated = 0;
+  for (const member of validMembers) {
     const result = upsertUser(member.user.username, member.displayName);
-    if (result === 'added') added++;
+    if (result === 'added') {
+      added++;
+    } else if (result === 'updated') {
+      updated++;
+    }
   }
 
-  // Видаляємо тих кого вже немає (records і members видаляться каскадно)
+  // Видаляємо тих кого вже немає або хто отримав ігноровану роль
   const dbUsers = getAllUsers();
   let removed = 0;
   for (const user of dbUsers) {
@@ -41,9 +47,10 @@ module.exports = async function handleSyncUsers(interaction, guild) {
   await interaction.editReply(
     `✅ Синхронізація завершена!\n` +
     `➕ Додано: **${added}**\n` +
+    `✏️ Оновлено імен: **${updated}**\n` +
     `➖ Видалено: **${removed}**\n\n` +
     `👥 **Учасники в базі (${allUsers.length}):**\n${userList}`
   );
 
-  autoDelete(interaction)
+  autoDelete(interaction);
 };
