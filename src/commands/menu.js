@@ -31,44 +31,48 @@ module.exports = async function handleMenu(interaction) {
   }
 
   // Бухгалтер і адмін
-if (isAdmin || isAccountant) {
-  components.push(
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('balance')
-        .setLabel('📊 Баланс всіх')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('mybalance')
-        .setLabel('💰 Мій баланс')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('contracts_list')
-        .setLabel('⚙️ Контракти')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('contract_view')
-        .setLabel('📜 Активний контракт')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('contract_start')
-        .setLabel('🚀 Запустити контракт')
-        .setStyle(ButtonStyle.Secondary),
-    )
-  );
-  components.push(
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('newrecord_start')
-        .setLabel('📋 Новий запис')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('payout_request')
-        .setLabel('💸 Запит на виплату')
-        .setStyle(ButtonStyle.Primary),
-    )
-  );
-}
+  if (isAdmin || isAccountant) {
+    components.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('balance')
+          .setLabel('📊 Баланс всіх')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('mybalance')
+          .setLabel('💰 Мій баланс')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('contracts_list')
+          .setLabel('⚙️ Контракти')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('contract_view')
+          .setLabel('📜 Активний контракт')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('contract_start')
+          .setLabel('🚀 Запустити контракт')
+          .setStyle(ButtonStyle.Secondary),
+      )
+    );
+    components.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('newrecord_start')
+          .setLabel('📋 Новий запис')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('payout_request')
+          .setLabel('💸 Запит на виплату')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('deposit_request')
+          .setLabel('💵 Внести кошти')
+          .setStyle(ButtonStyle.Success),
+      )
+    );
+  }
 
   // Звичайний гравець
   if (!isAdmin && !isAccountant && isMaccalister) {
@@ -90,6 +94,10 @@ if (isAdmin || isAccountant) {
           .setCustomId('payout_request')
           .setLabel('💸 Запит на виплату')
           .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('deposit_request')
+          .setLabel('💵 Внести кошти')
+          .setStyle(ButtonStyle.Success),
       )
     );
   }
