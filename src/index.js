@@ -27,6 +27,11 @@ const {
   handlePayoutRequest, handlePayoutModal,
   handlePayoutApprove, handlePayoutReject, handlePayoutRejectReason,
 } = require('./commands/payoutRequest');
+const {
+  handleDepositRequest, handleDepositSelectExpense,
+  handleDepositModalFree, handleDepositModalExpense,
+  handleDepositApprove, handleDepositReject, handleDepositRejectReason,
+} = require('./commands/depositRequest');
 
 const client = new Client({
   intents: [
@@ -76,21 +81,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isButton()) {
       const id = interaction.customId;
 
-      if (id === 'syncusers')                await handleSyncUsers(interaction, interaction.guild);
-      else if (id === 'createweeklyrecords') await handleCreateWeeklyRecords(interaction, interaction.guild);
-      else if (id === 'balance')             await handleBalance(interaction);
-      else if (id === 'mybalance')           await handleMyBalance(interaction);
-      else if (id === 'newrecord_start')     await handleNewRecordStart(interaction);
-      else if (id === 'contracts_list')      await handleContractsList(interaction);
-      else if (id === 'contract_add')        await handleContractAdd(interaction);
-      else if (id === 'contract_start')      await handleStartContract(interaction);
-      else if (id === 'contract_view')       await handleViewContract(interaction);
-      else if (id === 'contract_join')       await handleJoinContract(interaction);
+      if (id === 'syncusers')                   await handleSyncUsers(interaction, interaction.guild);
+      else if (id === 'createweeklyrecords')    await handleCreateWeeklyRecords(interaction, interaction.guild);
+      else if (id === 'balance')                await handleBalance(interaction);
+      else if (id === 'mybalance')              await handleMyBalance(interaction);
+      else if (id === 'newrecord_start')        await handleNewRecordStart(interaction);
+      else if (id === 'contracts_list')         await handleContractsList(interaction);
+      else if (id === 'contract_add')           await handleContractAdd(interaction);
+      else if (id === 'contract_start')         await handleStartContract(interaction);
+      else if (id === 'contract_view')          await handleViewContract(interaction);
+      else if (id === 'contract_join')          await handleJoinContract(interaction);
       else if (id === 'contract_remove_member') await handleRemoveMember(interaction);
-      else if (id === 'contract_close')      await handleCloseContract(interaction);
-      else if (id === 'payout_request')      await handlePayoutRequest(interaction);
-      else if (id.startsWith('payout_approve_')) await handlePayoutApprove(interaction);
-      else if (id.startsWith('payout_reject_') && !id.startsWith('payout_reject_reason_')) await handlePayoutReject(interaction);
+      else if (id === 'contract_close')         await handleCloseContract(interaction);
+      else if (id === 'payout_request')         await handlePayoutRequest(interaction);
+      else if (id === 'deposit_request')        await handleDepositRequest(interaction);
+      else if (id.startsWith('payout_approve_'))  await handlePayoutApprove(interaction);
+      else if (id.startsWith('deposit_approve_')) await handleDepositApprove(interaction);
+      else if (id.startsWith('payout_reject_') && !id.startsWith('payout_reject_reason_'))   await handlePayoutReject(interaction);
+      else if (id.startsWith('deposit_reject_') && !id.startsWith('deposit_reject_reason_')) await handleDepositReject(interaction);
     }
 
     if (interaction.isStringSelectMenu()) {
@@ -103,15 +111,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
       else if (id === 'contract_select_delete')       await handleContractSelectDelete(interaction);
       else if (id === 'contract_start_select')        await handleStartContractSelect(interaction);
       else if (id === 'contract_remove_select')       await handleRemoveMemberSelect(interaction);
+      else if (id === 'deposit_select_expense')       await handleDepositSelectExpense(interaction);
     }
 
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
 
-      if (id.startsWith('newrecord_modal_'))          await handleNewRecordModal(interaction);
-      else if (id.startsWith('contract_modal_'))      await handleContractModal(interaction);
-      else if (id === 'payout_modal')                 await handlePayoutModal(interaction);
+      if (id.startsWith('newrecord_modal_'))           await handleNewRecordModal(interaction);
+      else if (id.startsWith('contract_modal_'))       await handleContractModal(interaction);
+      else if (id === 'payout_modal')                  await handlePayoutModal(interaction);
       else if (id.startsWith('payout_reject_reason_')) await handlePayoutRejectReason(interaction);
+      else if (id === 'deposit_modal_free')             await handleDepositModalFree(interaction);
+      else if (id.startsWith('deposit_modal_expense_')) await handleDepositModalExpense(interaction);
+      else if (id.startsWith('deposit_reject_reason_')) await handleDepositRejectReason(interaction);
     }
 
   } catch (err) {
