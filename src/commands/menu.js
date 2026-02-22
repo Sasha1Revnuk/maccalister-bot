@@ -97,7 +97,7 @@ module.exports = async function handleMenu(interaction) {
         new ButtonBuilder()
           .setCustomId('deposit_request')
           .setLabel('💵 Внести кошти')
-          .setStyle(ButtonStyle.Success),
+          .setStyle(ButtonStyle.Primary),
       )
     );
   }
