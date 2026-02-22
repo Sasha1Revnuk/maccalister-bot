@@ -50,6 +50,10 @@ function upsertUser(login, name) {
     db.prepare('INSERT INTO users (login, name) VALUES (?, ?)').run(login, name);
     return 'added';
   }
+  if (existing.name !== name) {
+    db.prepare('UPDATE users SET name = ? WHERE login = ?').run(name, login);
+    return 'updated';
+  }
   return 'exists';
 }
 
