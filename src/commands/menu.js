@@ -64,12 +64,12 @@ module.exports = async function handleMenu(interaction) {
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setCustomId('payout_request')
-          .setLabel('💸 Запит на виплату')
+          .setLabel('💵 Запит на виплату')
           .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId('deposit_request')
           .setLabel('💵 Внести кошти')
-          .setStyle(ButtonStyle.Success),
+          .setStyle(ButtonStyle.Primary),
       )
     );
   }
@@ -92,7 +92,7 @@ module.exports = async function handleMenu(interaction) {
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setCustomId('payout_request')
-          .setLabel('💸 Запит на виплату')
+          .setLabel('💵 Запит на виплату')
           .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId('deposit_request')
