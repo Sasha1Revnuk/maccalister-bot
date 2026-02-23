@@ -2,8 +2,8 @@
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const cron = require('node-cron');
 
-const { WEEKLY_AMOUNT, WEEKLY_DEBT_LABEL } = require('./config');
-const { upsertUser, getAllUsers, createWeeklyRecords } = require('./db');
+const { WEEKLY_AMOUNT, WEEKLY_DEBT_LABEL, IGNORED_ROLE, NOTIFICATIONS_CHANNEL_ID } = require('./config');
+const { db, upsertUser, getAllUsers, createWeeklyRecords } = require('./db');
 
 const handleMenu = require('./commands/menu');
 const handleSyncUsers = require('./commands/syncUsers');
@@ -44,24 +44,52 @@ const client = new Client({
 
 async function runWeeklyRecords() {
   const guild = client.guilds.cache.first();
+
   try {
     await guild.members.fetch();
   } catch (err) {
     console.warn('⚠️ Rate limit, використовуємо кеш');
   }
 
-  guild.members.cache
-    .filter(m => !m.user.bot)
-    .forEach(m => upsertUser(m.user.username, m.displayName));
+  // Фільтруємо: без ботів і без ігнорованої ролі
+  const validMembers = [...guild.members.cache.values()].filter(m =>
+    !m.user.bot && !m.roles.cache.has(IGNORED_ROLE)
+  );
+
+  const discordLogins = new Set(validMembers.map(m => m.user.username));
+
+  // Синхронізуємо учасників
+  for (const member of validMembers) {
+    upsertUser(member.user.username, member.displayName);
+  }
+
+  // Видаляємо тих кого вже немає або хто отримав ігноровану роль
+  const dbUsers = getAllUsers();
+  for (const user of dbUsers) {
+    if (!discordLogins.has(user.login)) {
+      db.prepare('DELETE FROM users WHERE login = ?').run(user.login);
+    }
+  }
 
   const users = getAllUsers();
   const amount = Math.floor(WEEKLY_AMOUNT / 4 / users.length);
   const count = createWeeklyRecords(amount, WEEKLY_DEBT_LABEL);
 
-  const channel = guild.channels.cache.find(c => c.isTextBased());
-  await channel.send(
-    `✅ Список учасників оновлено. Щотижневі внески створено для **${count}** учасників по **$${amount}**`
-  );
+  try {
+    const channel = guild.channels.cache.get(NOTIFICATIONS_CHANNEL_ID);
+    if (channel) {
+      const tags = validMembers.map(m => `<@${m.id}>`).join(' ');
+
+      await channel.send(
+        `📅 **Щотижневий внесок нараховано!**\n\n` +
+        `💰 Сума для кожного: **$${amount}**\n` +
+        `👥 Учасників: **${count}**\n\n` +
+        `${tags}`
+      );
+    }
+  } catch (err) {
+    console.error('❌ Помилка відправки сповіщення:', err.message);
+  }
 }
 
 client.once(Events.ClientReady, () => {
@@ -117,11 +145,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
 
-      if (id.startsWith('newrecord_modal_'))           await handleNewRecordModal(interaction);
-      else if (id.startsWith('contract_modal_'))       await handleContractModal(interaction);
-      else if (id === 'payout_modal')                  await handlePayoutModal(interaction);
-      else if (id.startsWith('payout_reject_reason_')) await handlePayoutRejectReason(interaction);
-      else if (id === 'deposit_modal_free')             await handleDepositModalFree(interaction);
+      if (id.startsWith('newrecord_modal_'))            await handleNewRecordModal(interaction);
+      else if (id.startsWith('contract_modal_'))        await handleContractModal(interaction);
+      else if (id === 'payout_modal')                   await handlePayoutModal(interaction);
+      else if (id.startsWith('payout_reject_reason_'))  await handlePayoutRejectReason(interaction);
+      else if (id === 'deposit_modal_free')              await handleDepositModalFree(interaction);
       else if (id.startsWith('deposit_modal_expense_')) await handleDepositModalExpense(interaction);
       else if (id.startsWith('deposit_reject_reason_')) await handleDepositRejectReason(interaction);
     }
