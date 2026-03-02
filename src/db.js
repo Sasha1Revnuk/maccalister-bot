@@ -61,14 +61,16 @@ function getAllUsers() {
   return db.prepare('SELECT * FROM users').all();
 }
 
-// --- Records ---
 function createWeeklyRecords(amount, label) {
   const users = getAllUsers();
-  const insert = db.prepare('INSERT INTO records (user_login, amount, label, type) VALUES (?, ?, ?, ?)');
-  const insertMany = db.transaction((users) => {
-    for (const user of users) insert.run(user.login, amount, label, 'expense');
+
+  const processAll = db.transaction((users) => {
+    for (const user of users) {
+      addRecord(user.login, amount, label, 'expense');
+    }
   });
-  insertMany(users);
+
+  processAll(users);
   return users.length;
 }
 
