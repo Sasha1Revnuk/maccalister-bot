@@ -153,7 +153,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
   } catch (err) {
-    console.error('❌ Помилка обробки interaction:', err.message);
+    const detail = err.rawError?.message || err.message;
+    console.error('❌ Помилка обробки interaction:', detail);
   }
 });
 

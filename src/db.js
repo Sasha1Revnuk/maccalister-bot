@@ -95,6 +95,20 @@ function getAllBalance() {
   }));
 }
 
+function getAllUsersBalanceSummary() {
+  const users = db.prepare('SELECT login, name FROM users ORDER BY name ASC').all();
+  return users.map(u => ({
+    ...u,
+    total: db.prepare(`
+      SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE -amount END), 0) AS total
+      FROM records WHERE user_login = ? AND closed = 0
+    `).get(u.login).total,
+    openRecords: db.prepare(
+      'SELECT COUNT(*) AS c FROM records WHERE user_login = ? AND closed = 0'
+    ).get(u.login).c,
+  }));
+}
+
 function getOpenExpenses(login) {
   return db.prepare(`
     SELECT * FROM records
@@ -280,7 +294,7 @@ function removeMemberFromContract(activeContractId, userLogin) {
 module.exports = {
   db,
   upsertUser, getAllUsers,
-  createWeeklyRecords, getAllBalance, getRecordsByLogin,
+  createWeeklyRecords, getAllBalance, getAllUsersBalanceSummary, getRecordsByLogin,
   getOpenExpenses, getOpenIncomes,
   addRecord, insertRecord, closeRecords, partialCloseRecord,
   getAllContracts, getContractById, addContract, updateContract, deleteContract, isContractActive, deleteUser,

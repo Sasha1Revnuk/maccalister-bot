@@ -75,6 +75,52 @@ async function replyWithEmbeds(interaction, embeds) {
   }
 }
 
+const MESSAGE_MAX = 1900;
+
+function chunkText(lines, maxLen = MESSAGE_MAX) {
+  const chunks = [];
+  let buffer = '';
+
+  const flush = () => {
+    if (buffer) {
+      chunks.push(buffer);
+      buffer = '';
+    }
+  };
+
+  for (const line of lines) {
+    const next = buffer ? `${buffer}\n${line}` : line;
+    if (next.length <= maxLen) {
+      buffer = next;
+      continue;
+    }
+    flush();
+    if (line.length <= maxLen) {
+      buffer = line;
+    } else {
+      for (let i = 0; i < line.length; i += maxLen) {
+        chunks.push(line.slice(i, i + maxLen));
+      }
+    }
+  }
+  flush();
+  return chunks;
+}
+
+async function replyWithText(interaction, chunks, flags = 64) {
+  for (let i = 0; i < chunks.length; i++) {
+    if (i === 0) {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content: chunks[i] });
+      } else {
+        await interaction.reply({ content: chunks[i], flags });
+      }
+    } else {
+      await interaction.followUp({ content: chunks[i], flags });
+    }
+  }
+}
+
 async function sendWeeklyNotification(channel, { amount, count, roleId }) {
   const header =
     `📅 **Щотижневий внесок нараховано!**\n\n` +
@@ -104,5 +150,7 @@ module.exports = {
   deleteNow,
   buildBalanceEmbeds,
   replyWithEmbeds,
+  chunkText,
+  replyWithText,
   sendWeeklyNotification,
 };

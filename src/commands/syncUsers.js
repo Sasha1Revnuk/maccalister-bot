@@ -1,6 +1,6 @@
 ﻿const { ADMIN_ROLE, IGNORED_ROLE } = require('../config');
 const { upsertUser, getAllUsers, deleteUser } = require('../db');
-const { autoDelete } = require('../utils');
+const { autoDelete, chunkText } = require('../utils');
 
 module.exports = async function handleSyncUsers(interaction, guild) {
   const isAdmin = interaction.member.roles.cache.has(ADMIN_ROLE);
@@ -42,15 +42,21 @@ module.exports = async function handleSyncUsers(interaction, guild) {
   }
 
   const allUsers = getAllUsers();
-  const userList = allUsers.map(u => `• ${u.name} (@${u.login})`).join('\n');
-
-  await interaction.editReply(
+  const header =
     `✅ Синхронізація завершена!\n` +
     `➕ Додано: **${added}**\n` +
     `✏️ Оновлено імен: **${updated}**\n` +
     `➖ Видалено: **${removed}**\n\n` +
-    `👥 **Учасники в базі (${allUsers.length}):**\n${userList}`
-  );
+    `👥 **Учасники в базі (${allUsers.length}):**\n`;
+
+  const lines = allUsers.map(u => `• ${u.name} (@${u.login})`);
+  const chunks = lines.length ? chunkText(lines) : ['_немає_'];
+  chunks[0] = header + chunks[0];
+
+  await interaction.editReply({ content: chunks[0] });
+  for (let i = 1; i < chunks.length; i++) {
+    await interaction.followUp({ content: chunks[i], flags: 64 });
+  }
 
   autoDelete(interaction);
 };
