@@ -1,5 +1,6 @@
-﻿const { ADMIN_ROLE, IGNORED_ROLE, WEEKLY_AMOUNT, WEEKLY_DEBT_LABEL, NOTIFICATIONS_CHANNEL_ID } = require('../config');
-const { db, upsertUser, getAllUsers, createWeeklyRecords } = require('../db');
+﻿const { ADMIN_ROLE, IGNORED_ROLE, WEEKLY_AMOUNT, WEEKLY_DEBT_LABEL, NOTIFICATIONS_CHANNEL_ID, MACCALISTER_ROLE_ID } = require('../config');
+const { upsertUser, getAllUsers, createWeeklyRecords, deleteUser } = require('../db');
+const { sendWeeklyNotification } = require('../utils');
 const { deleteNow } = require('../utils');
 
 module.exports = async function handleCreateWeeklyRecords(interaction, guild) {
@@ -33,7 +34,7 @@ module.exports = async function handleCreateWeeklyRecords(interaction, guild) {
   const dbUsers = getAllUsers();
   for (const user of dbUsers) {
     if (!discordLogins.has(user.login)) {
-      db.prepare('DELETE FROM users WHERE login = ?').run(user.login);
+      deleteUser(user.login);
     }
   }
 
@@ -41,20 +42,14 @@ module.exports = async function handleCreateWeeklyRecords(interaction, guild) {
   const amount = Math.floor(WEEKLY_AMOUNT / 4 / users.length);
   const count = createWeeklyRecords(amount, WEEKLY_DEBT_LABEL);
 
-  // Тегаємо кожного учасника в каналі сповіщень
   try {
     const channel = guild.channels.cache.get(NOTIFICATIONS_CHANNEL_ID);
     if (channel) {
-      const tags = validMembers
-        .map(m => `<@${m.id}>`)
-        .join(' ');
-
-      await channel.send(
-        `📅 **Щотижневий внесок нараховано!**\n\n` +
-        `💰 Сума для кожного: **$${amount}**\n` +
-        `👥 Учасників: **${count}**\n\n` +
-        `${tags}`
-      );
+      await sendWeeklyNotification(channel, {
+        amount,
+        count,
+        roleId: MACCALISTER_ROLE_ID,
+      });
     }
   } catch (err) {
     console.error('❌ Помилка відправки сповіщення:', err.message);

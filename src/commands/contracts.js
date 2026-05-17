@@ -125,7 +125,23 @@ async function handleContractSelectEdit(interaction) {
 async function handleContractSelectDelete(interaction) {
   const id = parseInt(interaction.values[0]);
   const contract = getContractById(id);
-  deleteContract(id);
+
+  if (!contract) {
+    await interaction.update({ content: '❌ Контракт не знайдено.', embeds: [], components: [] });
+    autoDelete(interaction);
+    return;
+  }
+
+  const result = deleteContract(id);
+  if (result === 'active') {
+    await interaction.update({
+      content: `❌ Контракт **${contract.name}** зараз активний. Спочатку закрийте його через «Активний контракт».`,
+      embeds: [],
+      components: [],
+    });
+    autoDelete(interaction);
+    return;
+  }
 
   await interaction.update({
     content: `✅ Контракт **${contract.name}** видалено.`,

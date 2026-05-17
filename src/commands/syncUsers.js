@@ -1,5 +1,5 @@
 ﻿const { ADMIN_ROLE, IGNORED_ROLE } = require('../config');
-const { db, upsertUser, updateUserName, getAllUsers } = require('../db');
+const { upsertUser, getAllUsers, deleteUser } = require('../db');
 const { autoDelete } = require('../utils');
 
 module.exports = async function handleSyncUsers(interaction, guild) {
@@ -36,7 +36,7 @@ module.exports = async function handleSyncUsers(interaction, guild) {
   let removed = 0;
   for (const user of dbUsers) {
     if (!discordLogins.has(user.login)) {
-      db.prepare('DELETE FROM users WHERE login = ?').run(user.login);
+      deleteUser(user.login);
       removed++;
     }
   }

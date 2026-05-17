@@ -5,7 +5,7 @@
   ButtonStyle,
   EmbedBuilder,
 } = require('discord.js');
-const { CURRENCY, CONTRACTS_CHANNEL_ID, MACCALISTER_ROLE_ID } = require('../config');
+const { CURRENCY, CONTRACTS_CHANNEL_ID, MACCALISTER_ROLE_ID, ADMIN_ROLE } = require('../config');
 const {
   getAllContracts, getContractById,
   getActiveContract, startContract, closeActiveContract,
@@ -111,6 +111,7 @@ async function handleViewContract(interaction) {
     .setFooter({ text: `Запустив: @${active.started_by} • ${active.started_at.slice(0, 10)}` });
 
   const isStarter = interaction.user.username === active.started_by;
+  const isAdmin = interaction.member.roles.cache.has(ADMIN_ROLE);
   const alreadyJoined = members.some(m => m.user_login === interaction.user.username);
   const rows = [];
   const actionRow = new ActionRowBuilder();
@@ -124,7 +125,7 @@ async function handleViewContract(interaction) {
     );
   }
 
-  if (isStarter) {
+  if (isStarter || isAdmin) {
     actionRow.addComponents(
       new ButtonBuilder()
         .setCustomId('contract_remove_member')
@@ -174,7 +175,8 @@ async function handleJoinContract(interaction) {
 
 async function handleRemoveMember(interaction) {
   const active = getActiveContract();
-  if (!active || active.started_by !== interaction.user.username) {
+  const isAdmin = interaction.member.roles.cache.has(ADMIN_ROLE);
+  if (!active || (active.started_by !== interaction.user.username && !isAdmin)) {
     await interaction.reply({ content: '❌ Немає прав або немає активного контракту.', flags: 64 });
     autoDelete(interaction);
     return;
@@ -221,17 +223,36 @@ async function handleRemoveMemberSelect(interaction) {
 
 async function handleCloseContract(interaction) {
   const active = getActiveContract();
+  const isAdmin = interaction.member.roles.cache.has(ADMIN_ROLE);
 
-  if (!active || active.started_by !== interaction.user.username) {
-    await interaction.reply({ content: '❌ Тільки той хто запустив контракт може його закрити.', flags: 64 });
+  if (!active || (active.started_by !== interaction.user.username && !isAdmin)) {
+    await interaction.reply({ content: '❌ Тільки той хто запустив контракт або адмін може його закрити.', flags: 64 });
     autoDelete(interaction);
     return;
   }
 
   const members = getActiveContractMembers(active.id);
   if (!members.length) {
-    await interaction.reply({ content: '❌ Немає учасників контракту.', flags: 64 });
-    autoDelete(interaction);
+    closeActiveContract(active.id);
+    const guild = interaction.guild;
+    try {
+      const channel = guild.channels.cache.get(CONTRACTS_CHANNEL_ID);
+      if (channel) {
+        await channel.send(
+          `🏁 **Контракт скасовано: ${active.name}**\n` +
+          `👤 Закрив: ${isAdmin ? `<@${interaction.user.id}> (адмін)` : `<@${interaction.user.id}>`}\n` +
+          `⚠️ Учасників не було — винагорода не розподілялась.`
+        );
+      }
+    } catch (err) {
+      console.error('❌ Помилка відправки в канал:', err.message);
+    }
+    await interaction.update({
+      embeds: [],
+      components: [],
+      content: `✅ Контракт **${active.name}** закрито (без учасників).`,
+    });
+    deleteNow(interaction);
     return;
   }
 

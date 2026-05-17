@@ -216,8 +216,23 @@ function updateContract(id, name, reward) {
   db.prepare('UPDATE contracts SET name = ?, reward = ? WHERE id = ?').run(name, reward, id);
 }
 
+function isContractActive(contractId) {
+  return !!db.prepare('SELECT 1 FROM active_contract WHERE contract_id = ?').get(contractId);
+}
+
 function deleteContract(id) {
+  if (isContractActive(id)) return 'active';
   db.prepare('DELETE FROM contracts WHERE id = ?').run(id);
+  return 'ok';
+}
+
+function deleteUser(login) {
+  const run = db.transaction(() => {
+    db.prepare('DELETE FROM active_contract_members WHERE user_login = ?').run(login);
+    db.prepare('DELETE FROM records WHERE user_login = ?').run(login);
+    db.prepare('DELETE FROM users WHERE login = ?').run(login);
+  });
+  run();
 }
 
 // --- Active Contract ---
@@ -268,7 +283,7 @@ module.exports = {
   createWeeklyRecords, getAllBalance, getRecordsByLogin,
   getOpenExpenses, getOpenIncomes,
   addRecord, insertRecord, closeRecords, partialCloseRecord,
-  getAllContracts, getContractById, addContract, updateContract, deleteContract,
+  getAllContracts, getContractById, addContract, updateContract, deleteContract, isContractActive, deleteUser,
   getActiveContract, startContract, closeActiveContract,
   getActiveContractMembers, joinContract, removeMemberFromContract,
 };
